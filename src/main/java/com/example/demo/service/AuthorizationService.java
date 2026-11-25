@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.PermissionOverrideRequest;
+import com.example.demo.dto.PermissionRequest;
 import com.example.demo.dto.PermissionResponse;
+import com.example.demo.dto.RoleRequest;
 import com.example.demo.dto.RoleResponse;
 import com.example.demo.dto.UserAuthorizationResponse;
 import com.example.demo.dto.UserPermissionOverrideResponse;
@@ -74,6 +76,67 @@ public class AuthorizationService {
                 .collect(Collectors.toSet());
     }
 
+    // CREATE A ROLE
+    public RoleResponse createRole(RoleRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Role request must not be null");
+        }
+        String name = normalizeRoleName(request.name());
+        if (roleRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Role already exists: " + name);
+        }
+        Role role = new Role(name, normalizeDescription(request.description()));
+        return toRoleResponse(roleRepository.save(role));
+    }
+
+    // UPDATE ROLE NAME AND DESCRIPTION
+    public RoleResponse updateRole(Long roleId, RoleRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Role request must not be null");
+        }
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
+        String name = normalizeRoleName(request.name());
+        String currentName = role.getName();
+        if (isBuiltInRole(currentName) && !currentName.equalsIgnoreCase(name)) {
+            throw new IllegalArgumentException("The built-in ADMIN and USER role names cannot be changed");
+        }
+        roleRepository.findByNameIgnoreCase(name)
+                .filter(existing -> !existing.getId().equals(roleId))
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Role already exists: " + name);
+                });
+        role.setName(name);
+        role.setDescription(normalizeDescription(request.description()));
+        return toRoleResponse(roleRepository.save(role));
+    }
+
+    // DELETE A CUSTOM ROLE IF IT IS NOT ASSIGNED
+    public void deleteRole(Long roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
+        if (isBuiltInRole(role.getName())) {
+            throw new IllegalArgumentException("The built-in ADMIN and USER roles cannot be deleted");
+        }
+        if (userRepository.existsByRole_Id(roleId)) {
+            throw new IllegalArgumentException("Cannot delete a role assigned to one or more users; reassign those users first");
+        }
+        roleRepository.delete(role);
+    }
+
+    private String normalizeRoleName(String name) {
+        if (name == null || !name.trim().matches("[A-Za-z][A-Za-z0-9_]{0,49}")) {
+            throw new IllegalArgumentException(
+                    "Role name must start with a letter and contain only letters, numbers, or underscores (maximum 50 characters)"
+            );
+        }
+        return name.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private boolean isBuiltInRole(String name) {
+        return "ADMIN".equalsIgnoreCase(name) || "USER".equalsIgnoreCase(name);
+    }
+
     // ==========================================
     // GET ALL PERMISSIONS
     // ==========================================
@@ -91,9 +154,73 @@ public class AuthorizationService {
                 .collect(Collectors.toSet());
     }
 
-    // ==========================================
+    // CREATE PERMISSION
+    public PermissionResponse createPermission(PermissionRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Permission request must not be null");
+        }
+        String name = normalizePermissionName(request.name());
+        if (permissionRepository.existsByNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Permission already exists: " + name);
+        }
+        Permission permission = permissionRepository.save(
+                new Permission(name, normalizeDescription(request.description()))
+        );
+        return toPermissionResponse(permission);
+    }
+
+    // UPDATE PERMISSION
+    public PermissionResponse updatePermission(Long permissionId, PermissionRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Permission request must not be null");
+        }
+        Permission permission = getPermission(permissionId);
+        String name = normalizePermissionName(request.name());
+        permissionRepository.findByNameIgnoreCase(name)
+                .filter(existing -> !existing.getId().equals(permissionId))
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Permission already exists: " + name);
+                });
+        permission.setName(name);
+        permission.setDescription(normalizeDescription(request.description()));
+        return toPermissionResponse(permissionRepository.save(permission));
+    }
+
+    // DELETE PERMISSION AND ITS ASSOCIATIONS
+    public void deletePermission(Long permissionId) {
+        Permission permission = getPermission(permissionId);
+        for (Role role : roleRepository.findAll()) {
+            role.getPermissions().remove(permission);
+        }
+        userPermissionRepository.deleteAllByPermissionId(permissionId);
+        permissionRepository.delete(permission);
+    }
+
+    private Permission getPermission(Long permissionId) {
+        return permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Permission", permissionId));
+    }
+
+    private String normalizePermissionName(String name) {
+        if (name == null || !name.trim().matches("[A-Za-z][A-Za-z0-9_]{0,99}")) {
+            throw new IllegalArgumentException(
+                    "Permission name must start with a letter and contain only letters, numbers, or underscores (maximum 100 characters)"
+            );
+        }
+        return name.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeDescription(String description) {
+        return description == null || description.isBlank() ? null : description.trim();
+    }
+
+    private PermissionResponse toPermissionResponse(Permission permission) {
+        return new PermissionResponse(
+                permission.getId(), permission.getName(), permission.getDescription()
+        );
+    }
+
     // UPDATE ROLE PERMISSIONS
-    // ==========================================
 
     public RoleResponse updateRolePermissions(
             Long roleId,
@@ -119,9 +246,8 @@ public class AuthorizationService {
         return toRoleResponse(saved);
     }
 
-    // ==========================================
     // GET USER AUTHORIZATION
-    // ==========================================
+
 
     @Transactional(readOnly = true)
     public UserAuthorizationResponse getUserAuthorization(
@@ -132,9 +258,7 @@ public class AuthorizationService {
         return toUserAuthorizationResponse(user);
     }
 
-    // ==========================================
     // ADD OR UPDATE ONE USER PERMISSION
-    // ==========================================
 
     public UserAuthorizationResponse setUserPermission(
             Long userId,
@@ -174,16 +298,9 @@ public class AuthorizationService {
         return getUserAuthorization(userId);
     }
 
-    // ==========================================
     // REPLACE USER PERMISSION OVERRIDES
-    // ==========================================
 
-    /**
-     * Replaces the complete set of user overrides.
-     *
-     * Permissions not included in the request
-     * will have their overrides removed.
-     */
+
     public UserAuthorizationResponse replaceUserPermissionOverrides(
             Long userId,
             List<PermissionOverrideRequest> requests) {
@@ -276,9 +393,8 @@ public class AuthorizationService {
         return toUserAuthorizationResponse(user);
     }
 
-    // ==========================================
     // REMOVE USER PERMISSION OVERRIDE
-    // ==========================================
+
 
     public void removeUserPermissionOverride(
             Long userId,
@@ -320,9 +436,7 @@ public class AuthorizationService {
                 );
     }
 
-    // ==========================================
     // FIND PERMISSION
-    // ==========================================
 
     private Permission resolvePermission(String name) {
 
@@ -344,9 +458,8 @@ public class AuthorizationService {
                 );
     }
 
-    // ==========================================
+
     // RESOLVE MULTIPLE PERMISSIONS
-    // ==========================================
 
     private Set<Permission> resolvePermissions(
             Set<String> names) {
@@ -363,9 +476,8 @@ public class AuthorizationService {
                 .collect(Collectors.toSet());
     }
 
-    // ==========================================
     // CONVERT ROLE TO RESPONSE
-    // ==========================================
+
 
     private RoleResponse toRoleResponse(Role role) {
 
@@ -380,9 +492,7 @@ public class AuthorizationService {
         );
     }
 
-    // ==========================================
     // CONVERT USER TO AUTHORIZATION RESPONSE
-    // ==========================================
 
     private UserAuthorizationResponse toUserAuthorizationResponse(
             User user) {

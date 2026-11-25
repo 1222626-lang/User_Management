@@ -2,8 +2,10 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.BulkPermissionOverridesRequest;
 import com.example.demo.dto.PermissionOverrideRequest;
+import com.example.demo.dto.PermissionRequest;
 import com.example.demo.dto.PermissionResponse;
 import com.example.demo.dto.RolePermissionsRequest;
+import com.example.demo.dto.RoleRequest;
 import com.example.demo.dto.RoleResponse;
 import com.example.demo.dto.UserAuthorizationResponse;
 
@@ -39,6 +41,35 @@ public class AuthorizationController {
     }
 
     // ==========================================
+    // CREATE ROLE
+    // ==========================================
+    @PostMapping("/roles")
+    public ResponseEntity<RoleResponse> createRole(
+            @Valid @RequestBody RoleRequest request) {
+        return ResponseEntity.status(201)
+                .body(authorizationService.createRole(request));
+    }
+
+    // ==========================================
+    // UPDATE ROLE NAME/DESCRIPTION
+    // ==========================================
+    @PutMapping("/roles/{roleId}")
+    public RoleResponse updateRole(
+            @PathVariable Long roleId,
+            @Valid @RequestBody RoleRequest request) {
+        return authorizationService.updateRole(roleId, request);
+    }
+
+    // ==========================================
+    // DELETE CUSTOM ROLE
+    // ==========================================
+    @DeleteMapping("/roles/{roleId}")
+    public ResponseEntity<Void> deleteRole(@PathVariable Long roleId) {
+        authorizationService.deleteRole(roleId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==========================================
     // GET ALL PERMISSIONS
     // ==========================================
 
@@ -49,8 +80,34 @@ public class AuthorizationController {
     }
 
     // ==========================================
-    // UPDATE ROLE PERMISSIONS
+    // CREATE PERMISSION
     // ==========================================
+    @PostMapping("/permissions")
+    public ResponseEntity<PermissionResponse> createPermission(
+            @Valid @RequestBody PermissionRequest request) {
+        return ResponseEntity.status(201)
+                .body(authorizationService.createPermission(request));
+    }
+
+    // ==========================================
+    // UPDATE PERMISSION
+    // ==========================================
+    @PutMapping("/permissions/{permissionId}")
+    public PermissionResponse updatePermission(
+            @PathVariable Long permissionId,
+            @Valid @RequestBody PermissionRequest request) {
+        return authorizationService.updatePermission(permissionId, request);
+    }
+
+    // DELETE PERMISSION
+    @DeleteMapping("/permissions/{permissionId}")
+    public ResponseEntity<Void> deletePermission(
+            @PathVariable Long permissionId) {
+        authorizationService.deletePermission(permissionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // UPDATE ROLE PERMISSIONS
 
     @PutMapping("/roles/{roleId}/permissions")
     public RoleResponse updateRolePermissions(
@@ -63,9 +120,7 @@ public class AuthorizationController {
         );
     }
 
-    // ==========================================
     // GET USER PERMISSIONS
-    // ==========================================
 
     @GetMapping("/users/{userId}/permissions")
     public UserAuthorizationResponse getUserPermissions(
@@ -76,9 +131,7 @@ public class AuthorizationController {
         );
     }
 
-    // ==========================================
     // SET ONE USER PERMISSION
-    // ==========================================
 
     @PutMapping("/users/{userId}/permissions")
     public UserAuthorizationResponse setUserPermission(
@@ -91,9 +144,7 @@ public class AuthorizationController {
         );
     }
 
-    // ==========================================
     // UPDATE MULTIPLE USER PERMISSIONS
-    // ==========================================
 
     @PutMapping("/users/{userId}/permissions/bulk")
     public UserAuthorizationResponse replaceUserPermissionOverrides(
@@ -106,9 +157,6 @@ public class AuthorizationController {
         );
     }
 
-    // ==========================================
-    // REMOVE USER PERMISSION OVERRIDE
-    // ==========================================
 
     @DeleteMapping("/users/{userId}/permissions/{permissionId}")
     public ResponseEntity<Void> removeUserPermissionOverride(

@@ -35,9 +35,7 @@ public class CompanyService {
         this.userRepository = userRepository;
     }
 
-    // ==========================================
     // NORMALIZE EMAIL
-    // ==========================================
 
     private String normalizeEmail(String email) {
 
@@ -50,9 +48,7 @@ public class CompanyService {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    // ==========================================
     // GET COMPANY BY ID
-    // ==========================================
 
     private Company getCompany(Long id) {
 
@@ -62,9 +58,7 @@ public class CompanyService {
                 );
     }
 
-    // ==========================================
     // ENTITY TO RESPONSE DTO
-    // ==========================================
 
     private CompanyResponse toResponse(Company company) {
 
@@ -77,9 +71,7 @@ public class CompanyService {
         );
     }
 
-    // ==========================================
     // CREATE COMPANY
-    // ==========================================
 
     public CompanyResponse create(CompanyRequest request) {
 
@@ -112,9 +104,8 @@ public class CompanyService {
         return toResponse(savedCompany);
     }
 
-    // ==========================================
+
     // GET ALL COMPANIES WITH PAGINATION
-    // ==========================================
 
     @Transactional(readOnly = true)
     public Page<CompanyResponse> getAll(Pageable pageable) {
@@ -123,9 +114,7 @@ public class CompanyService {
                 .map(this::toResponse);
     }
 
-    // ==========================================
     // GET COMPANY BY ID
-    // ==========================================
 
     @Transactional(readOnly = true)
     public CompanyResponse getById(Long id) {
@@ -135,9 +124,7 @@ public class CompanyService {
         return toResponse(company);
     }
 
-    // ==========================================
     // UPDATE COMPANY - PUT
-    // ==========================================
 
     public CompanyResponse update(
             Long id,
@@ -170,9 +157,7 @@ public class CompanyService {
         return toResponse(updatedCompany);
     }
 
-    // ==========================================
     // PARTIAL UPDATE - PATCH
-    // ==========================================
 
     public CompanyResponse patchCompany(
             Long id,
@@ -221,9 +206,7 @@ public class CompanyService {
         return toResponse(updatedCompany);
     }
 
-    // ==========================================
     // UPDATE COMPANY STATUS
-    // ==========================================
 
     public CompanyResponse updateStatus(
             Long id,

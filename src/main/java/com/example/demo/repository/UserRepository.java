@@ -43,6 +43,7 @@ public interface UserRepository
             String email
     );
 
+    boolean existsByRole_Id(Long roleId);
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByEmailIgnoreCase(String email);

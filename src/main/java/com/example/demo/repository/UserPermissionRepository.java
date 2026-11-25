@@ -18,4 +18,5 @@ public interface UserPermissionRepository
     );
 
     void deleteAllByUserId(Long userId);
+    void deleteAllByPermissionId(Long permissionId);
 }

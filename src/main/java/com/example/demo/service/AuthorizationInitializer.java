@@ -35,9 +35,7 @@ public class AuthorizationInitializer
     @Transactional
     public void run(String... args) {
 
-        // ==========================================
         // 1. DEFINE PERMISSIONS
-        // ==========================================
 
         List<String> permissionNames = List.of(
 
@@ -61,10 +59,7 @@ public class AuthorizationInitializer
                 "AUTHORIZATION_MANAGE"
         );
 
-        // ==========================================
         // 2. CREATE MISSING PERMISSIONS
-        // ==========================================
-
         for (String name : permissionNames) {
 
             if (!permissionRepository
@@ -79,18 +74,14 @@ public class AuthorizationInitializer
             }
         }
 
-        // ==========================================
         // 3. LOAD ALL PERMISSIONS
-        // ==========================================
 
         Set<Permission> allPermissions =
                 permissionRepository.findAll()
                         .stream()
                         .collect(Collectors.toSet());
 
-        // ==========================================
         // 4. CREATE OR UPDATE ADMIN ROLE
-        // ==========================================
 
         Role admin = roleRepository
                 .findByNameIgnoreCase("ADMIN")
@@ -105,9 +96,7 @@ public class AuthorizationInitializer
 
         roleRepository.save(admin);
 
-        // ==========================================
         // 5. CREATE OR UPDATE USER ROLE
-        // ==========================================
 
         Role user = roleRepository
                 .findByNameIgnoreCase("USER")
@@ -132,9 +121,7 @@ public class AuthorizationInitializer
 
         roleRepository.save(user);
 
-        // ==========================================
         // 6. INITIALIZATION COMPLETED
-        // ==========================================
 
         System.out.println(
                 "=========================================="

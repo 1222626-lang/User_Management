@@ -76,9 +76,8 @@ public class PermissionService {
         return effective;
     }
 
-    /**
-     * Get Spring Security authorities.
-     */
+     // Get Spring Security authorities.
+
     @Transactional(readOnly = true)
     public Set<String> getAuthorities(String username) {
 
@@ -111,9 +110,8 @@ public class PermissionService {
         return authorities;
     }
 
-    /**
-     * Load user with all authorization relations.
-     */
+    //Load user with all authorization relations.
+
     private User loadUser(String username) {
 
         return userRepository
